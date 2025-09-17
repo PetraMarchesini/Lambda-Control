@@ -1,0 +1,130 @@
+%% Simulation of Engine Dynamics
+
+% Clear environment
+clear; clc; close all;
+
+%% Define Parameters as a Vector
+% Parameters of the simulation
+
+params(1) = 308;         % T_man: Intake manifold temperature (K)
+params(2) = 614.6e-6;    % V: Intake manifold volume (m^3)
+params(3) = 1.275e-3;    % V_d: Engine displacement (m^3)
+params(4) = 287;         % R: Ideal gas constant (J/(kg·K))
+params(5) = 0.83;        % C_t: Flow coefficient of throttle valve
+params(6) = 0.05;        % D: Throttle bore diameter (m)
+params(7) = 101325;      % p_amb: Ambient pressure (Pa)
+params(8) = 297;         % T_amb: Ambient temperature (K)
+params(9) = 5.4;         % alpha0: Closed throttle angle (degrees)
+params(10) = 1.4;        % k: Ratio of specific heats
+params(11) = 0.133;      % eta_vn0: Volumetric efficiency constant
+params(12) = 0.391e-3;   % eta_vn1: Volumetric efficiency constant
+params(13) = -0.0636e-6; % eta_vn2: Volumetric efficiency constant
+params(14) = 0.202e-5;   % eta_vp1: Volumetric efficiency constant
+params(15) = 14.67;      % lambda_s: Stoichiometric AFR
+params(16) = 870;        % Reference engine rotational speed (rpm)
+params(17) = 0.14;       % a: geometric constant
+params(18) = 43e6;       % Hu: Gasoline heating value (J/kg)
+params(19) = 0.35;       % eta_b: Brake thermal efficiency (assumed constant)
+params(20) = 0.1;        % I: Engine moment of inertia (kg·m^2)
+params(21) = 20;         % C: constant of lambda sensor
+params(22) = 10e3;       % Pb: constant brake power (cruising average case) (kW)
+
+%% Initial Conditions and simulation time
+% Initial conditions for the simulation
+x0 = [0.5 * params(7); 3000; 3e-5; 14]; % [p_man, n, m_ff, lambda]
+
+t_sim = 10; % simulation time (s)
+
+%% Inputs
+% Zero inputs
+% alpha_ref = 5.4; % Closed throttle plate angle (degrees)
+% mfi_dot_ref = 0; % Fuel injection mass flow (kg/s)
+% lambda_ref = 14.7; % stechiometric reference ratio
+
+% Zero alfa
+% alpha_ref = 5.4; % Closed throttle plate angle (degrees)
+% mfi_dot_ref = 6.8e-3; % Fuel injection mass flow (kg/s)
+% lambda_ref = 14.7; % stechiometric reference ratio
+
+% Zero mfi_dot
+% alpha_ref = 30; % Closed throttle plate angle (degrees)
+% mfi_dot_ref = 0; % Fuel injection mass flow (kg/s)
+% lambda_ref = 14.7; % stechiometric reference ratio
+
+% Nonzero input parameters
+% alpha_ref = 30; % Open throttle plate angle (degrees)
+% mfi_dot_ref = 6.8e-4; % Fuel injection mass flow (kg/s)
+% lambda_ref = 14.7; % stechiometric reference ratio
+
+% Time-varying inputs starting values
+% alpha_ref = 5.4; % Closed throttle plate angle (degrees)
+% mfi_dot_ref = 6.8e-4; % Fuel injection mass flow (kg/s)
+% lambda_ref = 14.7; % stechiometric reference ratio
+
+% To simulate with time-varying inputs, connect the simulink block to the 
+% block "dynamic model of the engine" and run main.m
+%% Simulink Model Setup
+% Load the Simulink model
+model_name = 'engine_model'; 
+load_system(model_name);
+
+% Set simulation time
+set_param(model_name, 'StopTime', 't_sim');
+
+% Assign initial conditions and parameters
+assignin('base', 'params', params);
+assignin('base', 'x0', x0);
+assignin('base', 'alpha_ref', alpha_ref);
+assignin('base', 'mfi_dot_ref', mfi_dot_ref);
+assignin('base', 'lambda_ref', lambda_ref);
+
+%% Run Simulation
+simOut = sim(model_name);
+
+%% Extract Simulation Results
+sim_time = simOut.tout;
+results = simOut.x.Data;
+
+% Extract states
+p = results(1, :); % Intake manifold pressure
+n = results(2, :); % Engine speed (rpm)
+m_ff = results(3, :); % Fuel film mass flow rate
+lambda = results(4, :); % Cylinder air-fuel ratio
+
+%% Plot Results
+figure;
+
+% Plot fuel film mass flow rate
+subplot(4, 1, 1);
+plot(sim_time, m_ff, 'LineWidth', 1.5);
+xlabel('Time (s)');
+ylabel('m_{ff} (kg/s)');
+title('Fuel Film Mass Flow Rate');
+grid on;
+
+% Plot cylinder air-fuel ratio
+subplot(4, 1, 2);
+plot(sim_time, lambda, 'LineWidth', 1.5);
+xlabel('Time (s)');
+ylabel('\lambda');
+title('Cylinder Air-Fuel Ratio');
+grid on;
+
+% Plot intake manifold pressure
+subplot(4, 1, 3);
+plot(sim_time, p, 'LineWidth', 1.5);
+xlabel('Time (s)');
+ylabel('p_{man} (Pa)');
+title('Intake Manifold Pressure');
+grid on;
+
+% Plot engine speed
+subplot(4, 1, 4);
+plot(sim_time, n, 'LineWidth', 1.5);
+xlabel('Time (s)');
+ylabel('n (rpm)');
+title('Engine Speed');
+grid on;
+
+%% Comments on Results
+disp('Simulation complete. Results plotted.');
